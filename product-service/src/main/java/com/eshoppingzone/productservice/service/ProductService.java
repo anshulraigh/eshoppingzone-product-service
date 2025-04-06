@@ -38,35 +38,49 @@ public class ProductService {
     }
 
     public Product addProduct(Product product) {
-        Category category = categoryClient.getCategoryById(product.getCategoryId());
-        if (category == null || category.getName() == null) {
-            throw new RuntimeException("Invalid category ID or category service is unavailable");
+        try {
+            Category category = categoryClient.getCategoryById(product.getCategoryId());
+            if (category != null) {
+                product.setCategoryId(category.getId());
+                product.setCategoryName(category.getName());
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Category service is unavailable. Please try again later.");
         }
-        product.setCategoryId(category.getId());
-        product.setCategoryName(category.getName()); // Attach category name before saving
         return productRepository.save(product);
     }
 
     public Product updateProduct(Long id, Product productDetails) {
         return productRepository.findById(id).map(product -> {
-            Category category = categoryClient.getCategoryById(productDetails.getCategoryId());
-            if (category == null) {
-                throw new RuntimeException("Invalid category ID");
+            try {
+                Category category = categoryClient.getCategoryById(productDetails.getCategoryId());
+                if (category == null) {
+                    throw new RuntimeException("Invalid category ID");
+                }
+                product.setCategoryId(category.getId());
+                product.setCategoryName(category.getName());
+            } catch (Exception e) {
+                throw new RuntimeException("Category service is unavailable. Please try again later.");
             }
+
             product.setName(productDetails.getName());
             product.setDescription(productDetails.getDescription());
             product.setPrice(productDetails.getPrice());
             product.setQuantity(productDetails.getQuantity());
-            product.setCategoryId(category.getId());
-            product.setCategoryName(category.getName());
+
             return productRepository.save(product);
         }).orElse(null);
     }
 
     private void attachCategoryName(Product product) {
-        Category category = categoryClient.getCategoryById(product.getCategoryId());
-        if (category != null) {
-            product.setCategoryName(category.getName());
+        try {
+            Category category = categoryClient.getCategoryById(product.getCategoryId());
+            if (category != null) {
+                product.setCategoryName(category.getName());
+            }
+        } catch (Exception ex) {
+            System.out.println("Failed to fetch category: " + ex.getMessage());
+            product.setCategoryName("Unavailable");
         }
     }
 
@@ -78,5 +92,4 @@ public class ProductService {
         }
         return false;
     }
-
 }
